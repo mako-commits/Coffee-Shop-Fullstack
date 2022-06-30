@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
-from .database.models import db_drop_and_create_all, setup_db, Drink
+from .database.models import db_drop_and_create_all, setup_db, Drink,db
 from .auth.auth import AuthError, get_token_auth_header, requires_auth
 
 app = Flask(__name__)
@@ -13,11 +13,11 @@ setup_db(app)
 CORS(app)
 
 
-@app.route('/')
-@requires_auth('get:drinks')
-# ‘/’ URL is bound with hello_world() function.
-def hello_world(token):
-    return 'Hello World'
+# @app.route('/')
+
+# # ‘/’ URL is bound with hello_world() function.
+# def hello_world(token):
+#     return 'Hello World'
 
 # # main driver function
 # if __name__ == '__main__':
@@ -45,7 +45,7 @@ db_drop_and_create_all()
 '''
 
 
-@app.route('/drinks',)
+@app.route('/drinks')
 def get_drinks():
     drinks = Drink.query.all()
     short_drinks = [drink.short() for drink in drinks]
@@ -71,11 +71,11 @@ def get_drinks_details(payload):
     print(payload)
     try:
         drinks = Drink.query.all()
-        detailed_drinks = [drink.long() for drink in drinks]
+        drinks = [drink.long() for drink in drinks]
         return jsonify({
             "success": True,
-            "drinks": detailed_drinks
-        })
+            "drinks": drinks
+        }),200
     except:
         abort(422)
 
@@ -96,28 +96,63 @@ def get_drinks_details(payload):
 def post_drink(payload):
     print(payload)
     body = request.get_json()
-
-    drink_title = body.get("title", None)
-    drink_recipe = body.get("recipe", None)
-    # drink = Drink.query.filter_by(title=drink_title).first()
-    # if drink:
-    #     abort(409)
-    if not drink_title or not drink_recipe:
+    title = body.get("title", None)
+    recipe = body.get("recipe", None)
+    drink = Drink.query.filter_by(title=title).first()
+    if drink:
+        abort(409)
+    if title and recipe is not None:
         try:
-            new_drink = Drink(
-                title=drink_title,
-                recipe=json.dumps(drink_recipe))
-            new_drink.insert()
+            drink = Drink(title=title, recipe=json.dumps(recipe))
+            drink.insert()
             return jsonify({
-                'success': True,
-                'drinks': [new_drink.long()]
-            })
+                "success": True,
+                "drinks": [drink.long()]
+                }),200
         except:
             abort(422)
-       
     else:
-       abort(400)  
+        abort(422)
+
     
+
+   
+    
+    # drink_detial = request.get_json()
+    # if ('title' not in drink_detial) or ('recipe' not in drink_detial):
+    #         abort(400)
+    # try:
+    #     new_drink = Drink(title=drink_detial['title'], recipe=json.dumps(drink_detial['recipe']))
+    #     print(new_drink.title)
+    #     print(new_drink.recipe)
+    #     new_drink.insert()
+    #     print("inserted")
+    #     return jsonify({"success": True, "drinks": [new_drink.long()]})
+    # except:
+    #         abort(500)
+    
+    # body = request.get_json()
+
+    # drink_title = body.get("title", None)
+    # drink_recipe = body.get("recipe", None)
+    # # drink = Drink.query.filter_by(title=drink_title).first()
+    # # if drink:
+    # #     abort(409)
+    # if type(drink_recipe) != list:
+    #     drink_recipe = [drink_recipe]
+    #     recipe = json.dumps(drink_recipe)
+    # try:
+    #     new_drink = Drink(
+    #         title=drink_title,
+    #         recipe=recipe)
+    #     new_drink.insert()
+    #     return jsonify({
+    #         'success': True,
+    #         'drinks': [new_drink.long()]
+    #     })
+    # except:
+    #     abort(422)
+
     
     # if ('post:drinks' in user.permissions):
     #     return jsonify({
@@ -152,15 +187,13 @@ def edit_drink(payload, id):
     drink = Drink.query.filter(Drink.id == id).one_or_none()
     if drink is None:
         abort(404)
-
+    # if Drink.query.filter_by(title=drink_title).first():
+    #             abort(409)
     if drink_title and drink_recipe is not None:
        
         try:
             drink.title = drink_title
             drink.recipe = json.dumps(drink_recipe)
-            # if Drink.query.filter_by(title=drink_title).first():
-            #     abort(409)
-            # else:
             drink.update()
             updated_drink = Drink.query.get(id)
             return jsonify({
@@ -171,6 +204,114 @@ def edit_drink(payload, id):
             abort(422)
     else:
          abort(422)
+    # drink = Drink.query.filter_by(id=id).first()
+    # if not drink:
+    #     abort(404)
+        
+    # # try:
+    # data = request.get_json()['title'] and request.get_json()['recipe']
+    # if not data:
+    #     abort(400)
+    # # except (TypeError, KeyError):
+    # #     abort(400)
+    
+    # # check if drink title exists
+    # if Drink.query.filter_by(title=request.get_json()['title']).first():
+    #     abort(409)
+
+    # try:
+    #     if request.get_json().get('title'):
+    #         drink.title=request.get_json()['title']
+
+    #     if request.get_json().get('recipe'):
+    #         drink.recipe=json.dumps(request.get_json()['recipe'])
+    #     drink.update()
+    #     return jsonify({
+    #         'success': True,
+    #         'drinks': [drink.long()]
+    #     }), 200
+    # except Exception:
+    #     abort(422)
+
+    # drink = Drink.query.get(id)
+    # if not drink:
+    #     abort(404)
+    
+    # body = request.get_json()
+    # title = body.get("title", None)
+    # recipe = body.get("recipe", None)
+
+    # data = title or recipe
+    # if data is None:
+    #     abort(400)
+
+    # drink = Drink.query.filter_by(title=title).first()
+    # if drink is not None:
+    #     try:
+    #         drink = Drink(title=title, recipe=json.dumps(recipe))
+    #         drink.insert()
+    #         drinks = Drink.query.all()
+    #         return jsonify({
+    #             "success": True,
+    #             "drinks": [drinks.long()]
+    #             }),200
+    #     except:
+    #         abort(422)
+    # else:
+    #     # db.session.rollback()
+    #     abort(409)
+        
+   
+
+
+
+
+    # body = request.get_json()
+    # drink_title = body.get("title", None)
+    # drink_recipe = body.get("recipe", None)
+    # # drink = Drink.query.filter_by(id=id).first()
+    # # drink = Drink.query.filter(Drink.id == id).one_or_none()
+    # # if drink is None:
+    # #     abort(404)
+    # drink.title = drink_title
+    # drink.recipe = json.dumps(drink_recipe)
+    # drink = Drink.query.filter_by(title=drink_title).first()
+    # if drink:
+    #     abort(409)
+    # try:
+        
+        
+    #     drink.update()
+    #     updated_drink = Drink.query.get(id)
+    #     return jsonify({
+    #         'success': True,
+    #         'drinks': [updated_drink.long()]
+    #     }), 200
+    # except BaseException:
+    
+    #     abort(422)
+    
+    # else:
+    #     db.session.rollback()
+    #     abort(409)
+       
+         
+    # if drink_title and drink_recipe is not None:
+       
+    #     try:
+    #         drink.title = drink_title
+    #         drink.recipe = json.dumps(drink_recipe)
+            
+    #         drink.update()
+    #         updated_drink = Drink.query.get(id)
+    #         return jsonify({
+    #             'success': True,
+    #             'drinks': [updated_drink.long()]
+    #         }), 200
+    #     except BaseException:
+    #         abort(422)
+    # else:
+    #      abort(422)
 
 
 '''
