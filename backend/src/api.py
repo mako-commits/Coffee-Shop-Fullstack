@@ -1,31 +1,16 @@
-from inspect import currentframe
 import os
-# from sre_constants import SUCCESS
 from flask import Flask, request, jsonify, abort
 from sqlalchemy import exc
 import json
 from flask_cors import CORS
 from .database.models import db_drop_and_create_all, setup_db, Drink,db
 from .auth.auth import AuthError, get_token_auth_header, requires_auth
-
+import sys
 app = Flask(__name__)
 setup_db(app)
 CORS(app)
 
 
-# @app.route('/')
-
-# # ‘/’ URL is bound with hello_world() function.
-# def hello_world(token):
-#     return 'Hello World'
-
-# # main driver function
-# if __name__ == '__main__':
-
-
-#     # run() method of Flask class runs the application
-#     # on the local development server.
-#     app.run()
 '''
 @TODO uncomment the following line to initialize the datbase
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
@@ -48,10 +33,10 @@ db_drop_and_create_all()
 @app.route('/drinks')
 def get_drinks():
     drinks = Drink.query.all()
-    short_drinks = [drink.short() for drink in drinks]
+    drink = [drink.short() for drink in drinks]
     return jsonify({
         'success': True,
-        'drinks': short_drinks
+        'drinks': drink
     }), 200
 
 
@@ -71,12 +56,13 @@ def get_drinks_details(payload):
     print(payload)
     try:
         drinks = Drink.query.all()
-        drinks = [drink.long() for drink in drinks]
+        drink = [drink.long() for drink in drinks]
         return jsonify({
             "success": True,
-            "drinks": drinks
+            "drinks": drink
         }),200
     except:
+        print(sys.exc_info())
         abort(422)
 
 
@@ -98,10 +84,19 @@ def post_drink(payload):
     body = request.get_json()
     title = body.get("title", None)
     recipe = body.get("recipe", None)
+
     drink = Drink.query.filter_by(title=title).first()
     if drink:
         abort(409)
-    if title and recipe is not None:
+    
+    for item in recipe:
+        color = item.get("color", None)
+        parts = item.get("parts", None)
+        name = item.get("name", None)
+        if not color or not parts or not name:
+            abort(400)
+
+    if title and recipe:
         try:
             drink = Drink(title=title, recipe=json.dumps(recipe))
             drink.insert()
@@ -112,56 +107,8 @@ def post_drink(payload):
         except:
             abort(422)
     else:
-        abort(422)
-
-    
-
-   
-    
-    # drink_detial = request.get_json()
-    # if ('title' not in drink_detial) or ('recipe' not in drink_detial):
-    #         abort(400)
-    # try:
-    #     new_drink = Drink(title=drink_detial['title'], recipe=json.dumps(drink_detial['recipe']))
-    #     print(new_drink.title)
-    #     print(new_drink.recipe)
-    #     new_drink.insert()
-    #     print("inserted")
-    #     return jsonify({"success": True, "drinks": [new_drink.long()]})
-    # except:
-    #         abort(500)
-    
-    # body = request.get_json()
-
-    # drink_title = body.get("title", None)
-    # drink_recipe = body.get("recipe", None)
-    # # drink = Drink.query.filter_by(title=drink_title).first()
-    # # if drink:
-    # #     abort(409)
-    # if type(drink_recipe) != list:
-    #     drink_recipe = [drink_recipe]
-    #     recipe = json.dumps(drink_recipe)
-    # try:
-    #     new_drink = Drink(
-    #         title=drink_title,
-    #         recipe=recipe)
-    #     new_drink.insert()
-    #     return jsonify({
-    #         'success': True,
-    #         'drinks': [new_drink.long()]
-    #     })
-    # except:
-    #     abort(422)
-
-    
-    # if ('post:drinks' in user.permissions):
-    #     return jsonify({
-    #         'success': True,
-    #         drinks: drink
-    #     })
-    # else:
-    #     abort(403)
-
+        print(sys.exc_info())
+        abort(400)
 
 '''
 @TODO implement endpoint
@@ -179,139 +126,38 @@ def post_drink(payload):
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth("patch:drinks")
 def edit_drink(payload, id):
-    body = request.get_json()
 
-    drink_title = body.get("title", None)
-    drink_recipe = body.get("recipe", None)
-    # drink = Drink.query.filter_by(id=id).first()
     drink = Drink.query.filter(Drink.id == id).one_or_none()
     if drink is None:
         abort(404)
-    # if Drink.query.filter_by(title=drink_title).first():
-    #             abort(409)
-    if drink_title and drink_recipe is not None:
-       
-        try:
-            drink.title = drink_title
-            drink.recipe = json.dumps(drink_recipe)
-            drink.update()
-            updated_drink = Drink.query.get(id)
-            return jsonify({
-                'success': True,
-                'drinks': [updated_drink.long()]
-            }), 200
-        except BaseException:
-            abort(422)
-    else:
-         abort(422)
-    # drink = Drink.query.filter_by(id=id).first()
-    # if not drink:
-    #     abort(404)
-        
-    # # try:
-    # data = request.get_json()['title'] and request.get_json()['recipe']
-    # if not data:
-    #     abort(400)
-    # # except (TypeError, KeyError):
-    # #     abort(400)
     
-    # # check if drink title exists
-    # if Drink.query.filter_by(title=request.get_json()['title']).first():
-    #     abort(409)
+    body = request.get_json()
+    drink_title = body.get("title", None)
+    drink_recipe = body.get("recipe", None)
 
-    # try:
-    #     if request.get_json().get('title'):
-    #         drink.title=request.get_json()['title']
+    if drink_title:
+        drink.title = drink_title
 
-    #     if request.get_json().get('recipe'):
-    #         drink.recipe=json.dumps(request.get_json()['recipe'])
-    #     drink.update()
-    #     return jsonify({
-    #         'success': True,
-    #         'drinks': [drink.long()]
-    #     }), 200
-    # except Exception:
-    #     abort(422)
+    if drink_recipe:
+        for item in drink_recipe:
+            color = item.get("color", None)
+            parts = item.get("parts", None)
+            name = item.get("name", None)
+            if not color or not parts or not name:
+                abort(400)
 
-    # drink = Drink.query.get(id)
-    # if not drink:
-    #     abort(404)
+        drink.recipe = json.dumps(drink_recipe)
     
-    # body = request.get_json()
-    # title = body.get("title", None)
-    # recipe = body.get("recipe", None)
-
-    # data = title or recipe
-    # if data is None:
-    #     abort(400)
-
-    # drink = Drink.query.filter_by(title=title).first()
-    # if drink is not None:
-    #     try:
-    #         drink = Drink(title=title, recipe=json.dumps(recipe))
-    #         drink.insert()
-    #         drinks = Drink.query.all()
-    #         return jsonify({
-    #             "success": True,
-    #             "drinks": [drinks.long()]
-    #             }),200
-    #     except:
-    #         abort(422)
-    # else:
-    #     # db.session.rollback()
-    #     abort(409)
-        
-   
-
-
-
-
-    # body = request.get_json()
-    # drink_title = body.get("title", None)
-    # drink_recipe = body.get("recipe", None)
-    # # drink = Drink.query.filter_by(id=id).first()
-    # # drink = Drink.query.filter(Drink.id == id).one_or_none()
-    # # if drink is None:
-    # #     abort(404)
-    # drink.title = drink_title
-    # drink.recipe = json.dumps(drink_recipe)
-    # drink = Drink.query.filter_by(title=drink_title).first()
-    # if drink:
-    #     abort(409)
-    # try:
-        
-        
-    #     drink.update()
-    #     updated_drink = Drink.query.get(id)
-    #     return jsonify({
-    #         'success': True,
-    #         'drinks': [updated_drink.long()]
-    #     }), 200
-    # except BaseException:
-    
-    #     abort(422)
-    
-    # else:
-    #     db.session.rollback()
-    #     abort(409)
-       
-         
-    # if drink_title and drink_recipe is not None:
-       
-    #     try:
-    #         drink.title = drink_title
-    #         drink.recipe = json.dumps(drink_recipe)
-            
-    #         drink.update()
-    #         updated_drink = Drink.query.get(id)
-    #         return jsonify({
-    #             'success': True,
-    #             'drinks': [updated_drink.long()]
-    #         }), 200
-    #     except BaseException:
-    #         abort(422)
-    # else:
-    #      abort(422)
+    try:
+        drink.update()
+    except:
+        print(sys.exc_info())
+        abort(422)
+    drinks = [drink.long()]
+    return jsonify({
+        "success": True,
+        "drinks": drinks
+    })
 
 
 '''
@@ -341,6 +187,7 @@ def delete_drink(payload, id):
                 "delete": id
             })
         except BaseException:
+            print(sys.exc_info())
             abort(422)
 
 
@@ -374,11 +221,10 @@ def unprocessable(error):
 @app.errorhandler(400)
 def bad_request(error):
     return jsonify({
-        "success": False,
-        "error": 400,
-        "message": "bad request"}),
-    400
-
+        'success': False,
+        'error': 400,
+        'message': 'Bad request'
+    }), 400
 
 @app.errorhandler(405)
 def method_not_allowed(error):
