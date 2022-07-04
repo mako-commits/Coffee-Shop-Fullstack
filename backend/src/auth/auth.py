@@ -8,9 +8,9 @@ from urllib.request import urlopen
 from dotenv import load_dotenv
 
 load_dotenv()
-AUTH0_DOMAIN = os.environ['AUTH0_DOMAIN']
-ALGORITHMS = os.environ['ALGORITHMS']
-API_AUDIENCE = os.environ['API_AUDIENCE']
+AUTH0_DOMAIN='dev-4k1ufr6l.us.auth0.com'
+ALGORITHMS=['RS256']
+API_AUDIENCE='drinks'
 
 
 # AuthError Exception
