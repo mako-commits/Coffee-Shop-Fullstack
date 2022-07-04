@@ -3,6 +3,7 @@ venv/
 __pycache__/
 test.db
 backend/.venv
+backend/src/.env
 frontend/node_modules
 frontend/src/environments
 # OS generated files #
